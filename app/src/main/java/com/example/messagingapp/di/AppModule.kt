@@ -5,14 +5,17 @@ import androidx.room.Room
 import com.example.messagingapp.model.data.MessageDatabaseDao
 import com.example.messagingapp.model.data.UserDatabase
 import com.example.messagingapp.model.data.UserDatabaseDao
+import com.example.messagingapp.model.network.ApiService
 import com.example.messagingapp.repository.MessageRepository
 import com.example.messagingapp.repository.MessageRepositoryImpl
 import com.example.messagingapp.repository.UserRepositoryImpl
 import com.example.messagingapp.repository.UserRepository
 import dagger.Module
 import dagger.Provides
+import retrofit2.converter.gson.GsonConverterFactory
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import retrofit2.Retrofit
 import javax.inject.Singleton
 
 @Module
@@ -31,10 +34,25 @@ object AppModule {
     fun provideMessageDao(db: UserDatabase): MessageDatabaseDao = db.messageDao()
 
     @Provides
-    fun provideUserRepository(userDao: UserDatabaseDao): UserRepository =
-        UserRepositoryImpl(userDao)
+    fun provideUserRepository(
+        userDao: UserDatabaseDao,
+        apiService: ApiService
+    ): UserRepository = UserRepositoryImpl(userDao, apiService)
 
     @Provides
     fun provideMessageRepository(messageDao: MessageDatabaseDao): MessageRepository =
         MessageRepositoryImpl(messageDao)
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(): Retrofit =
+        Retrofit.Builder()
+            .baseUrl("http://10.0.2.2:5263/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+    @Provides
+    @Singleton
+    fun provideApiService(retrofit: Retrofit): ApiService =
+        retrofit.create(ApiService::class.java)
 }

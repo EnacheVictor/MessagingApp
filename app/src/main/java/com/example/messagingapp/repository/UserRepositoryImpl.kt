@@ -1,9 +1,13 @@
 package com.example.messagingapp.repository
 
+import android.util.Log
 import com.example.messagingapp.model.data.UserDatabaseDao
 import com.example.messagingapp.model.data.UserEntity
+import com.example.messagingapp.model.network.ApiService
+import com.example.messagingapp.model.network.SignUpDto
 
-class UserRepositoryImpl(private val dao: UserDatabaseDao) : UserRepository {
+class UserRepositoryImpl(private val dao: UserDatabaseDao,
+                         private val apiService: ApiService) : UserRepository {
 
     override suspend fun getAllUsers(): List<UserEntity> {
         return dao.getAllUsers()
@@ -49,5 +53,14 @@ class UserRepositoryImpl(private val dao: UserDatabaseDao) : UserRepository {
     }
     override suspend fun setFavorite(username: String, isFavorite: Boolean) {
         dao.setFavorite(username, isFavorite)
+    }
+
+    override suspend fun signUp(username: String, password: String): Boolean {
+        val dto = SignUpDto(username, password)
+        val response = apiService.signUp(dto)
+        Log.d("SIGNUP", "Response code: ${response.code()}")
+        Log.d("SIGNUP", "Response body: ${response.body()}")
+        Log.d("SIGNUP", "Error body: ${response.errorBody()?.string()}")
+        return response.isSuccessful
     }
 }

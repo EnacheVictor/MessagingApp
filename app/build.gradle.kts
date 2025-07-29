@@ -77,14 +77,16 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
+    // Icons extended
     implementation("androidx.compose.material:material-icons-extended")
 
     implementation("androidx.compose.material:material:1.6.1")
 
-    implementation("com.google.accompanist:accompanist-systemuicontroller:0.30.1")
-
+    //Retrofit
     implementation ("com.squareup.retrofit2:retrofit:2.11.0")
-    implementation ("com.squareup.retrofit2:converter.gson:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+
+
 
 
 

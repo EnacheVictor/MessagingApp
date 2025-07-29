@@ -6,9 +6,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.messagingapp.model.data.PasswordRequirements
+import com.example.messagingapp.repository.UserRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class SignUpViewModel: ViewModel() {
+@HiltViewModel
+class SignUpViewModel @Inject constructor(
+    private val userRepository: UserRepository
+) : ViewModel() {
 
     var username by mutableStateOf("")
         private set
@@ -33,7 +41,7 @@ class SignUpViewModel: ViewModel() {
     var isSignUpSuccessful by mutableStateOf(false)
         private set
 
-    fun onUsernameChange(newUsername:String){
+    fun onUsernameChange(newUsername: String) {
         username = newUsername
     }
 
@@ -74,25 +82,21 @@ class SignUpViewModel: ViewModel() {
         )
     }
 
-
-    fun onSignUpClicked(context: Context){
-
+    fun onSignUpClicked(context: Context) {
         errorMessage = validateInputs()
-        if (errorMessage == null) {
-            Toast.makeText(
-                context,
-                "Sign Up Successful",
-                Toast.LENGTH_LONG
-            ).show()
-            isSignUpSuccessful = true
-        } else {
-            Toast.makeText(
-                context,
-                errorMessage,
-                Toast.LENGTH_LONG
-            ).show()
+        if (errorMessage != null) {
+            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+            return
         }
 
+        viewModelScope.launch {
+            val result = userRepository.signUp(username,password)
+            if (result) {
+                Toast.makeText(context, "Sign Up Successful", Toast.LENGTH_LONG).show()
+                isSignUpSuccessful = true
+            } else {
+                Toast.makeText(context, "Internal error", Toast.LENGTH_LONG).show()
+            }
+        }
     }
-
 }

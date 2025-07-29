@@ -30,10 +30,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.messagingapp.presentation.components.LoginButton
 import com.example.messagingapp.presentation.components.TextFields
@@ -43,7 +42,7 @@ import com.example.messagingapp.ui.theme.LightBlue
 import com.example.messagingapp.ui.theme.mLightPurple
 
 @Composable
-fun SignUpScreen(viewModel: SignUpViewModel = viewModel(),
+fun SignUpScreen(viewModel: SignUpViewModel = hiltViewModel(),
                  navController: NavController){
     val context = LocalContext.current
 
