@@ -9,6 +9,8 @@ interface ApiService {
     @POST("users/register")
     suspend fun signUp(@Body signUpDto: SignUpDto): Response<Unit>
 
-    @POST("login")
+    @POST("users/login")
     suspend fun login(@Body loginDto: LoginDto): Response<Unit>
+
+
 }

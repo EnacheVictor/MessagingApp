@@ -14,4 +14,5 @@ interface UserRepository {
     suspend fun removeFromFavorites(username: String)
     suspend fun setFavorite(username: String, isFavorite: Boolean)
     suspend fun signUp(username: String, password: String): Boolean
+    suspend fun login(username: String,password: String): Boolean
 }

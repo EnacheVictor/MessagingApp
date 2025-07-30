@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.messagingapp.model.data.UserDatabaseDao
 import com.example.messagingapp.model.data.UserEntity
 import com.example.messagingapp.model.network.ApiService
+import com.example.messagingapp.model.network.LoginDto
 import com.example.messagingapp.model.network.SignUpDto
 
 class UserRepositoryImpl(private val dao: UserDatabaseDao,
@@ -58,9 +59,13 @@ class UserRepositoryImpl(private val dao: UserDatabaseDao,
     override suspend fun signUp(username: String, password: String): Boolean {
         val dto = SignUpDto(username, password)
         val response = apiService.signUp(dto)
-        Log.d("SIGNUP", "Response code: ${response.code()}")
-        Log.d("SIGNUP", "Response body: ${response.body()}")
-        Log.d("SIGNUP", "Error body: ${response.errorBody()?.string()}")
         return response.isSuccessful
     }
+
+    override suspend fun login(username: String,password: String): Boolean{
+        val dto = LoginDto(username, password)
+        val response = apiService.login(dto)
+        return response.isSuccessful
+    }
+
 }
