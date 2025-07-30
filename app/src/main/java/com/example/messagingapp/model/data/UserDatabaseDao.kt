@@ -27,4 +27,7 @@ interface UserDatabaseDao {
 
     @Query("UPDATE users SET isFavorite = :isFavorite WHERE username = :username")
     suspend fun setFavorite(username: String, isFavorite: Boolean)
+
+    @Query("DELETE FROM users")
+    suspend fun deleteAllUsers()
 }

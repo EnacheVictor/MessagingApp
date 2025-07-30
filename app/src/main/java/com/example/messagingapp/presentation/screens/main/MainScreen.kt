@@ -36,6 +36,7 @@ fun MainScreen(
     LaunchedEffect(loggedInUsername) {
         viewModel.setLoggedInUser(loggedInUsername)
         viewModel.loadOwnStatus(loggedInUsername)
+        viewModel.refreshLocalUsers()
     }
 
     val context = LocalContext.current

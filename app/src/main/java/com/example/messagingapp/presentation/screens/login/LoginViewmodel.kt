@@ -6,8 +6,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.messagingapp.repository.UserRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class LoginViewModel : ViewModel() {
+@HiltViewModel
+class LoginViewModel @Inject constructor(
+    private val userRepository: UserRepository
+) : ViewModel() {
 
     var username by mutableStateOf("")
         private set
@@ -30,30 +38,22 @@ class LoginViewModel : ViewModel() {
         username = newUsername
     }
 
-    private fun validateInputs(): String? {
-
-        return when {
-            username.isBlank() || password.isBlank() -> "All fields are required."
-            else -> null
-        }
-    }
-
     fun onLoginClicked(context: Context) {
-        errorMessage = validateInputs()
-        if (errorMessage == null) {
-            isLoginSuccessful = true
-            Toast.makeText(
-                context,
-                "Login successful",
-                Toast.LENGTH_SHORT
-            ).show()
+        if (username.isBlank() || password.isBlank()) {
+            errorMessage = "All fields are required"
+            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+            return
         }
-        else {
-            Toast.makeText(
-                context,
-                errorMessage,
-                Toast.LENGTH_LONG
-            ).show()
+
+        viewModelScope.launch {
+            val result = userRepository.login(username, password)
+            if (result) {
+                userRepository.usersFromServer()
+                Toast.makeText(context, "Login successful", Toast.LENGTH_LONG).show()
+                isLoginSuccessful = true
+            } else {
+                Toast.makeText(context, "Invalid credentials", Toast.LENGTH_LONG).show()
+            }
         }
     }
 }
