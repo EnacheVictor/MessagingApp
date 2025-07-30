@@ -18,17 +18,6 @@ class UserRepositoryImpl(private val dao: UserDatabaseDao,
         dao.insertUser(UserEntity(username))
     }
 
-    override suspend fun populateInitialUsers() {
-        val users = listOf(
-            "Maria Popescu",
-            "Andrei Ionescu",
-            "Alexandra Marin",
-            "Ion Pop",
-            "Cristina Dinu"
-        )
-        users.forEach { dao.insertUser(UserEntity(it)) }
-    }
-
     override suspend fun deleteUser(username: String) {
         dao.deleteUser(username)
     }
@@ -66,6 +55,17 @@ class UserRepositoryImpl(private val dao: UserDatabaseDao,
         val dto = LoginDto(username, password)
         val response = apiService.login(dto)
         return response.isSuccessful
+    }
+
+    override suspend fun usersFromServer() {
+        val response = apiService.getAllUsernames()
+        if (response.isSuccessful) {
+            val usernames = response.body() ?: emptyList()
+            dao.deleteAllUsers()
+            usernames.forEach { username ->
+                dao.insertUser(UserEntity(username = username))
+            }
+        }
     }
 
 }

@@ -46,29 +46,12 @@ class MainViewModel @Inject constructor(
     var selectedStatus by mutableStateOf("😎 Available")
         private set
 
-    var dummyInserted by mutableStateOf(false)
-        private set
-
-    init {
-        loadUsersWithSeed()
-    }
-
     fun onSearchChanged(newSearch: String) {
         _search.value = newSearch
     }
 
     fun setLoggedInUser(username: String) {
         currentUsername = username
-    }
-
-    private fun loadUsersWithSeed() {
-        viewModelScope.launch {
-            val existing = userRepository.getAllUsers()
-            if (existing.isEmpty()) {
-                userRepository.populateInitialUsers()
-            }
-            _allContacts.value = userRepository.getAllUsers()
-        }
     }
 
     fun promptDeleteContact(contact: String) {
@@ -90,6 +73,12 @@ class MainViewModel @Inject constructor(
     fun cancelDelete() {
         contactToDelete = null
         showDeleteDialog = false
+    }
+
+    fun refreshLocalUsers() {
+        viewModelScope.launch {
+            _allContacts.value = userRepository.getAllUsers()
+        }
     }
 
     fun onStatusSelected(newStatus: String, username: String, context: Context) {

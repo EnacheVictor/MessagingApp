@@ -48,6 +48,7 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             val result = userRepository.login(username, password)
             if (result) {
+                userRepository.usersFromServer()
                 Toast.makeText(context, "Login successful", Toast.LENGTH_LONG).show()
                 isLoginSuccessful = true
             } else {
