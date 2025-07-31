@@ -1,6 +1,7 @@
 package com.example.messagingapp.presentation.screens.signup
 
 import PasswordRequirementItem
+import android.widget.Toast
 import com.example.messagingapp.R
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,15 +44,26 @@ import com.example.messagingapp.ui.theme.LightBlue
 import com.example.messagingapp.ui.theme.mLightPurple
 
 @Composable
-fun SignUpScreen(viewModel: SignUpViewModel = hiltViewModel(),
-                 navController: NavController){
+fun SignUpScreen(
+    viewModel: SignUpViewModel = hiltViewModel(),
+    navController: NavController
+) {
+    val state = viewModel.uiState
     val context = LocalContext.current
 
-    if (viewModel.isSignUpSuccessful) {
-        navController.navigate(AllScreens.LoginScreen.name) {
-            popUpTo(AllScreens.SignUpScreen.name) {
-                inclusive = true
+    LaunchedEffect(true) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is SignUpViewModel.UiEvent.ShowToast -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                }
             }
+        }
+    }
+
+    if (state.isSignUpSuccessful) {
+        navController.navigate(AllScreens.LoginScreen.name) {
+            popUpTo(AllScreens.SignUpScreen.name) { inclusive = true }
         }
     }
 
@@ -63,17 +76,16 @@ fun SignUpScreen(viewModel: SignUpViewModel = hiltViewModel(),
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.TopCenter
         ) {
-
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                     .padding(top = 32.dp, start = 16.dp, end = 16.dp)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.splash),
                     contentDescription = "App Logo",
-                    modifier = Modifier
-                        .size(100.dp)
+                    modifier = Modifier.size(100.dp)
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -95,13 +107,12 @@ fun SignUpScreen(viewModel: SignUpViewModel = hiltViewModel(),
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Column(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     TextFields(
-                        value = viewModel.username,
-                        onValueChange = viewModel::onUsernameChange,
+                        value = state.username,
+                        onValueChange = { viewModel.onEvent(SignUpUiEvent.UsernameChanged(it)) },
                         label = "Username:",
                         placeholder = "Choose a username",
                         leadingIcon = {
@@ -109,18 +120,17 @@ fun SignUpScreen(viewModel: SignUpViewModel = hiltViewModel(),
                         }
                     )
                     TextFields(
-                        value = viewModel.email,
-                        onValueChange = viewModel::onEmailChanged,
+                        value = state.email,
+                        onValueChange = { viewModel.onEvent(SignUpUiEvent.EmailChanged(it)) },
                         label = "Email address:",
                         placeholder = "example@gmail.com",
                         leadingIcon = {
                             Icon(Icons.Default.Email, contentDescription = "email icon")
                         }
                     )
-
                     TextFields(
-                        value = viewModel.password,
-                        onValueChange = viewModel::onPasswordChanged,
+                        value = state.password,
+                        onValueChange = { viewModel.onEvent(SignUpUiEvent.PasswordChanged(it)) },
                         label = "Password:",
                         placeholder = "Create a strong password",
                         isPassword = true,
@@ -128,10 +138,9 @@ fun SignUpScreen(viewModel: SignUpViewModel = hiltViewModel(),
                             Icon(Icons.Default.Lock, contentDescription = "password icon")
                         }
                     )
-
                     TextFields(
-                        value = viewModel.confirmPassword,
-                        onValueChange = viewModel::onConfirmPasswordChanged,
+                        value = state.confirmPassword,
+                        onValueChange = { viewModel.onEvent(SignUpUiEvent.ConfirmPasswordChanged(it)) },
                         label = "Confirm Password:",
                         placeholder = "Repeat your password",
                         isPassword = true,
@@ -140,37 +149,18 @@ fun SignUpScreen(viewModel: SignUpViewModel = hiltViewModel(),
                         }
                     )
 
-                    if (viewModel.password.isNotEmpty()) {
-                        Column(
-                            modifier = Modifier.padding(top = 6.dp)
-                        ) {
-                            PasswordRequirementItem(
-                                label = "Minimum 8 characters",
-                                fulfilled = viewModel.passwordRequirementsState.lengthOk
-                            )
-                            PasswordRequirementItem(
-                                label = "At least one uppercase letter",
-                                fulfilled = viewModel.passwordRequirementsState.hasUppercase
-                            )
-                            PasswordRequirementItem(
-                                label = "At least one lowercase letter",
-                                fulfilled = viewModel.passwordRequirementsState.hasLowercase
-                            )
-                            PasswordRequirementItem(
-                                label = "At least one digit",
-                                fulfilled = viewModel.passwordRequirementsState.hasDigit
-                            )
-                            PasswordRequirementItem(
-                                label = "At least one special character",
-                                fulfilled = viewModel.passwordRequirementsState.hasSpecialChar
-                            )
+                    if (state.password.isNotEmpty()) {
+                        Column(modifier = Modifier.padding(top = 6.dp)) {
+                            PasswordRequirementItem("Minimum 8 characters", state.passwordRequirements.lengthOk)
+                            PasswordRequirementItem("At least one uppercase letter", state.passwordRequirements.hasUppercase)
+                            PasswordRequirementItem("At least one lowercase letter", state.passwordRequirements.hasLowercase)
+                            PasswordRequirementItem("At least one digit", state.passwordRequirements.hasDigit)
+                            PasswordRequirementItem("At least one special character", state.passwordRequirements.hasSpecialChar)
                         }
                     }
 
                     LoginButton(
-                        onClick = {
-                            viewModel.onSignUpClicked(context)
-                        },
+                        onClick = { viewModel.onEvent(SignUpUiEvent.SignUpClicked) },
                         text = "Sign Up",
                         modifier = Modifier
                             .fillMaxWidth()
@@ -178,15 +168,14 @@ fun SignUpScreen(viewModel: SignUpViewModel = hiltViewModel(),
                             .padding(top = 6.dp)
                     )
                 }
+
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(bottom = 16.dp)
                 ) {
                     HorizontalDivider(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(1.dp),
+                        modifier = Modifier.weight(1f).height(1.dp),
                         color = mLightPurple
                     )
                     Text(
@@ -196,11 +185,9 @@ fun SignUpScreen(viewModel: SignUpViewModel = hiltViewModel(),
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(start = 8.dp)
                     )
-                    TextButton(
-                        onClick = {
-                            navController.navigate(AllScreens.LoginScreen.name)
-                        }
-                    ) {
+                    TextButton(onClick = {
+                        navController.navigate(AllScreens.LoginScreen.name)
+                    }) {
                         Text(
                             text = "Log in",
                             color = DarkBlue,
@@ -210,13 +197,12 @@ fun SignUpScreen(viewModel: SignUpViewModel = hiltViewModel(),
                         )
                     }
                     HorizontalDivider(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(1.dp),
+                        modifier = Modifier.weight(1f).height(1.dp),
                         color = mLightPurple,
                     )
                 }
             }
+
             Text(
                 text = "By proceeding, you confirm that you accept our Terms of Service and Privacy Policy.",
                 color = mLightPurple,
