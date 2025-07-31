@@ -1,6 +1,7 @@
 package com.example.messagingapp.presentation.screens.signup
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -9,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.messagingapp.model.data.PasswordRequirements
 import com.example.messagingapp.repository.UserRepository
+import com.example.messagingapp.utils.Hash
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -90,7 +92,8 @@ class SignUpViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val result = userRepository.signUp(username,password)
+            val hashedPassword = Hash.sha256(password)
+            val result = userRepository.signUp(username,hashedPassword)
             if (result) {
                 Toast.makeText(context, "Sign Up Successful", Toast.LENGTH_LONG).show()
                 isSignUpSuccessful = true

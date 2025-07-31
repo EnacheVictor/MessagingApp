@@ -4,10 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -26,15 +23,14 @@ fun ContactScreen(
     contactUsername: String,
     viewModel: ContactViewModel = hiltViewModel()
 ) {
+    val state by viewModel.uiState.collectAsState()
     var messageText by remember { mutableStateOf("") }
     val showDialog = remember { mutableStateOf(false) }
-
-    val messages by viewModel.filteredMessages.collectAsState()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        viewModel.conversation(loggedInUsername, contactUsername)
+        viewModel.onEvent(ContactUiEvent.LoadConversation(loggedInUsername, contactUsername))
     }
 
     if (showDialog.value) {
@@ -44,18 +40,12 @@ fun ContactScreen(
             text = { Text("Are you sure you want to clear the message history?") },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.deleteConversation(loggedInUsername, contactUsername)
+                    viewModel.onEvent(ContactUiEvent.DeleteConversation(loggedInUsername, contactUsername))
                     showDialog.value = false
-                }) {
-                    Text("Yes")
-                }
+                }) { Text("Yes") }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    showDialog.value = false
-                }) {
-                    Text("No")
-                }
+                TextButton(onClick = { showDialog.value = false }) { Text("No") }
             }
         )
     }
@@ -66,8 +56,10 @@ fun ContactScreen(
             ContactTopBar(
                 contactUsername = contactUsername,
                 onBackClick = { navController.popBackStack() },
-                searchText = viewModel.searchText.toString(),
-                onSearchTextChange = viewModel::onSearchChange,
+                searchText = state.searchText,
+                onSearchTextChange = {
+                    viewModel.onEvent(ContactUiEvent.SearchChanged(it))
+                },
                 onClearConvClick = {
                     showDialog.value = true
                 }
@@ -89,7 +81,7 @@ fun ContactScreen(
                 state = listState,
                 contentPadding = PaddingValues(vertical = 8.dp)
             ) {
-                items(messages) { message ->
+                items(state.filteredMessages) { message ->
                     MessageBubble(
                         messageText = message.messageText,
                         isSentByMe = message.senderUsername == loggedInUsername,
@@ -104,10 +96,12 @@ fun ContactScreen(
                 onMessageChange = { messageText = it },
                 onSend = {
                     if (messageText.isNotBlank()) {
-                        viewModel.sendMessage(
-                            sender = loggedInUsername,
-                            receiver = contactUsername,
-                            text = messageText
+                        viewModel.onEvent(
+                            ContactUiEvent.SendMessage(
+                                sender = loggedInUsername,
+                                receiver = contactUsername,
+                                text = messageText
+                            )
                         )
                         messageText = ""
                         scope.launch {
@@ -120,4 +114,3 @@ fun ContactScreen(
         }
     }
 }
-
