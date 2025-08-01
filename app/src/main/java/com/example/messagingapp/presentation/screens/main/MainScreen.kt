@@ -1,10 +1,10 @@
 package com.example.messagingapp.presentation.screens.main
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.DismissDirection
 import androidx.compose.material.DismissValue
@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.lazy.items
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.messagingapp.presentation.components.ContactItem
@@ -33,33 +34,32 @@ fun MainScreen(
     loggedInUsername: String,
     viewModel: MainViewModel = hiltViewModel()
 ) {
-    LaunchedEffect(loggedInUsername) {
-        viewModel.setLoggedInUser(loggedInUsername)
-        viewModel.loadOwnStatus(loggedInUsername)
-        viewModel.refreshLocalUsers()
-    }
-
+    val state = viewModel.uiState
     val context = LocalContext.current
-
-    val search by viewModel.search.collectAsState()
-    val contacts by viewModel.filteredContacts.collectAsState()
-
     var showStatusDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.onEvent(MainUiEvent.Init(loggedInUsername))
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is MainViewModel.UiEvent.ShowToast ->
+                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
             MainTopBar(
                 title = "Chats",
-                searchValue = search,
-                onSearchChange = viewModel::onSearchChanged,
+                searchValue = state.searchText,
+                onSearchChange = { viewModel.onEvent(MainUiEvent.SearchChanged(it)) },
                 onSignOutClick = {
                     navController.navigate(AllScreens.LoginScreen.name) {
                         popUpTo(0)
                     }
                 },
-                onChooseStatusClick = {
-                    showStatusDialog = true
-                }
+                onChooseStatusClick = { showStatusDialog = true }
             )
         }
     ) { innerPadding ->
@@ -67,11 +67,11 @@ fun MainScreen(
             contentPadding = innerPadding,
             modifier = Modifier.fillMaxSize().background(Color.White)
         ) {
-            items(contacts, key = { it.username }) { user ->
+            items(state.filteredContacts, key = { it.username }) { user ->
                 val dismissState = rememberDismissState(
                     confirmStateChange = {
                         if (it == DismissValue.DismissedToStart) {
-                            viewModel.promptDeleteContact(user.username)
+                            viewModel.onEvent(MainUiEvent.PromptDelete(user.username))
                             false
                         } else false
                     }
@@ -99,11 +99,11 @@ fun MainScreen(
                             isFavorite = user.isFavorite,
                             onClick = {
                                 navController.navigate(
-                                    "${AllScreens.ContactScreen.name}/${Uri.encode(loggedInUsername)}/${Uri.encode(user.username)}"
+                                    "${AllScreens.ContactScreen.name}/${Uri.encode(state.currentUsername)}/${Uri.encode(user.username)}"
                                 )
                             },
                             onToggleFavorite = {
-                                viewModel.toggleFavorite(user.username)
+                                viewModel.onEvent(MainUiEvent.ToggleFavorite(user.username))
                             }
                         )
                     }
@@ -111,26 +111,26 @@ fun MainScreen(
             }
         }
 
-        if (viewModel.showDeleteDialog && viewModel.contactToDelete != null) {
+        if (state.showDeleteDialog && state.contactToDelete != null) {
             AlertDialog(
-                onDismissRequest = { viewModel.cancelDelete() },
+                onDismissRequest = { viewModel.onEvent(MainUiEvent.CancelDelete) },
                 confirmButton = {
-                    TextButton(onClick = { viewModel.confirmDeleteContact() }) {
+                    TextButton(onClick = { viewModel.onEvent(MainUiEvent.ConfirmDelete) }) {
                         Text("Delete", color = Color.Red)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { viewModel.cancelDelete() }) {
+                    TextButton(onClick = { viewModel.onEvent(MainUiEvent.CancelDelete) }) {
                         Text("Cancel")
                     }
                 },
                 title = { Text("Delete Contact") },
-                text = { Text("Are you sure you want to delete ${viewModel.contactToDelete}?") }
+                text = { Text("Are you sure you want to delete ${state.contactToDelete}?") }
             )
         }
 
         if (showStatusDialog) {
-            val statusOptions = listOf("😎 Available", "💬 Busy", "🚀 At work", "📵 DND", "😂 Chill mood")
+            val statusOptions = listOf("Available", "Busy", "At work", "DND", "Chill mood")
             AlertDialog(
                 onDismissRequest = { showStatusDialog = false },
                 title = { Text("Choose your status") },
@@ -139,13 +139,11 @@ fun MainScreen(
                         statusOptions.forEach { status ->
                             TextButton(
                                 onClick = {
-                                    viewModel.onStatusSelected(status, loggedInUsername, context)
+                                    viewModel.onEvent(MainUiEvent.StatusSelected(status))
                                     showStatusDialog = false
                                 },
                                 modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(status)
-                            }
+                            ) { Text(status) }
                         }
                     }
                 },

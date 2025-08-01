@@ -1,21 +1,17 @@
 package com.example.messagingapp.presentation.screens.main
 
-import android.content.Context
-import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.messagingapp.repository.UserRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.*
 import com.example.messagingapp.model.data.UserEntity
 import com.example.messagingapp.repository.MessageRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import com.example.messagingapp.repository.UserRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -23,86 +19,89 @@ class MainViewModel @Inject constructor(
     private val messageRepository: MessageRepository
 ) : ViewModel() {
 
-    private var currentUsername by mutableStateOf("")
-
-    private val _search = MutableStateFlow("")
-    val search: StateFlow<String> = _search
-
-    private val _allContacts = MutableStateFlow<List<UserEntity>>(emptyList())
-    val allContacts: StateFlow<List<UserEntity>> = _allContacts
-
-    val filteredContacts: StateFlow<List<UserEntity>> =
-        combine(_allContacts, _search) { contacts, query ->
-            contacts.filter { it.username != currentUsername }
-                .filter { it.username.contains(query, ignoreCase = true) }
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-
-    var showDeleteDialog by mutableStateOf(false)
+    var uiState by mutableStateOf(MainUiState())
         private set
 
-    var contactToDelete by mutableStateOf<String?>(null)
-        private set
+    private val _uiEvent = MutableSharedFlow<UiEvent>()
+    val uiEvent = _uiEvent.asSharedFlow()
 
-    var selectedStatus by mutableStateOf("😎 Available")
-        private set
+    fun onEvent(event: MainUiEvent) {
+        when (event) {
+            is MainUiEvent.Init -> {
+                uiState = uiState.copy(currentUsername = event.loggedInUsername)
+                loadOwnStatus()
+                refreshContacts()
+            }
 
-    fun onSearchChanged(newSearch: String) {
-        _search.value = newSearch
-    }
+            is MainUiEvent.SearchChanged -> {
+                val filtered = filterContacts(uiState.allContacts, event.text)
+                uiState = uiState.copy(searchText = event.text, filteredContacts = filtered)
+            }
 
-    fun setLoggedInUser(username: String) {
-        currentUsername = username
-    }
+            is MainUiEvent.ToggleFavorite -> {
+                viewModelScope.launch {
+                    userRepository.setFavorite(event.username, !getUser(event.username)?.isFavorite!!)
+                    refreshContacts()
+                }
+            }
 
-    fun promptDeleteContact(contact: String) {
-        contactToDelete = contact
-        showDeleteDialog = true
-    }
+            is MainUiEvent.PromptDelete -> {
+                uiState = uiState.copy(contactToDelete = event.username, showDeleteDialog = true)
+            }
 
-    fun confirmDeleteContact() {
-        contactToDelete?.let {
-            viewModelScope.launch {
-                userRepository.deleteUser(it)
-                _allContacts.value = userRepository.getAllUsers()
+            is MainUiEvent.ConfirmDelete -> {
+                viewModelScope.launch {
+                    uiState.contactToDelete?.let { userRepository.deleteUser(it) }
+                    refreshContacts()
+                }
+                uiState = uiState.copy(contactToDelete = null, showDeleteDialog = false)
+            }
+
+            is MainUiEvent.CancelDelete -> {
+                uiState = uiState.copy(contactToDelete = null, showDeleteDialog = false)
+            }
+
+            is MainUiEvent.StatusSelected -> {
+                viewModelScope.launch {
+                    userRepository.updateStatus(uiState.currentUsername, event.status)
+                    uiState = uiState.copy(selectedStatus = event.status)
+                    sendUiEvent(UiEvent.ShowToast("Status updated"))
+                }
             }
         }
-        contactToDelete = null
-        showDeleteDialog = false
     }
 
-    fun cancelDelete() {
-        contactToDelete = null
-        showDeleteDialog = false
-    }
-
-    fun refreshLocalUsers() {
+    private fun refreshContacts() {
         viewModelScope.launch {
-            _allContacts.value = userRepository.getAllUsers()
+            val all = userRepository.getAllUsers()
+            val filtered = filterContacts(all, uiState.searchText)
+            uiState = uiState.copy(allContacts = all, filteredContacts = filtered)
         }
     }
 
-    fun onStatusSelected(newStatus: String, username: String, context: Context) {
+    private fun loadOwnStatus() {
         viewModelScope.launch {
-            userRepository.updateStatus(username, newStatus)
-            selectedStatus = newStatus
-            Toast.makeText(context, "Status updated", Toast.LENGTH_SHORT).show()
+            val status = userRepository.getStatusForUser(uiState.currentUsername)
+            uiState = uiState.copy(selectedStatus = status)
         }
     }
 
-    fun loadOwnStatus(username: String) {
+    private fun getUser(username: String): UserEntity? {
+        return uiState.allContacts.find { it.username == username }
+    }
+
+    private fun filterContacts(contacts: List<UserEntity>, query: String): List<UserEntity> {
+        return contacts.filter { it.username != uiState.currentUsername }
+            .filter { it.username.contains(query, ignoreCase = true) }
+    }
+
+    private fun sendUiEvent(event: UiEvent) {
         viewModelScope.launch {
-            selectedStatus = userRepository.getStatusForUser(username)
+            _uiEvent.emit(event)
         }
     }
 
-    fun toggleFavorite(username: String) {
-        viewModelScope.launch {
-            val user = _allContacts.value.find { it.username == username }
-            if (user != null) {
-                val newFavorite = !user.isFavorite
-                userRepository.setFavorite(username, newFavorite)
-                _allContacts.value = userRepository.getAllUsers()
-            }
-        }
+    sealed class UiEvent {
+        data class ShowToast(val message: String) : UiEvent()
     }
 }
