@@ -1,6 +1,7 @@
 package com.example.messagingapp.presentation.screens.login
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -8,6 +9,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,18 +34,28 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
     navController: NavController
 ) {
+    val state = viewModel.uiState
     val context = LocalContext.current
 
-    if (viewModel.isLoginSuccessful) {
-        navController.navigate("${AllScreens.MainHostScreen.name}/${Uri.encode(viewModel.username)}") {
+    LaunchedEffect(true) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is LoginViewModel.UiEvent.ShowToast -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    if (state.isLoginSuccessful) {
+        navController.navigate("${AllScreens.MainHostScreen.name}/${Uri.encode(state.username)}") {
             popUpTo(AllScreens.LoginScreen.name) { inclusive = true }
         }
     }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = LightBlue,
-        shadowElevation = 8.dp
+        color = LightBlue
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -59,7 +71,6 @@ fun LoginScreen(
                         contentDescription = "Main Icon",
                         modifier = Modifier.size(120.dp)
                     )
-
                     Column {
                         Text(
                             text = "MessageApp",
@@ -88,8 +99,8 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(26.dp))
 
                 TextFields(
-                    value = viewModel.username,
-                    onValueChange = { viewModel.onUsernameChanged(it) },
+                    value = state.username,
+                    onValueChange = { viewModel.onEvent(LoginUiEvent.UsernameChanged(it)) },
                     label = "Username",
                     placeholder = "Type your name:",
                     leadingIcon = {
@@ -101,8 +112,8 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 TextFields(
-                    value = viewModel.password,
-                    onValueChange = { viewModel.onPasswordChanged(it) },
+                    value = state.password,
+                    onValueChange = { viewModel.onEvent(LoginUiEvent.PasswordChanged(it)) },
                     label = "Password:",
                     placeholder = "Type your password:",
                     isPassword = true,
@@ -116,7 +127,7 @@ fun LoginScreen(
 
                 LoginButton(
                     onClick = {
-                        viewModel.onLoginClicked(context)
+                        viewModel.onEvent(LoginUiEvent.LoginClicked)
                     },
                     text = "Login",
                     modifier = Modifier
@@ -133,9 +144,7 @@ fun LoginScreen(
                     modifier = Modifier.padding(bottom = 16.dp)
                 ) {
                     HorizontalDivider(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(1.dp),
+                        modifier = Modifier.weight(1f).height(1.dp),
                         color = mLightPurple
                     )
                     Text(
@@ -145,11 +154,9 @@ fun LoginScreen(
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(start = 8.dp)
                     )
-                    TextButton(
-                        onClick = {
-                            navController.navigate(AllScreens.SignUpScreen.name)
-                        }
-                    ) {
+                    TextButton(onClick = {
+                        navController.navigate(AllScreens.SignUpScreen.name)
+                    }) {
                         Text(
                             text = "Sign Up",
                             color = DarkBlue,
@@ -159,9 +166,7 @@ fun LoginScreen(
                         )
                     }
                     HorizontalDivider(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(1.dp),
+                        modifier = Modifier.weight(1f).height(1.dp),
                         color = mLightPurple,
                     )
                 }
@@ -180,3 +185,4 @@ fun LoginScreen(
         }
     }
 }
+

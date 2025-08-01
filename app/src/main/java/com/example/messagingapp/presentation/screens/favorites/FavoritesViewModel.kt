@@ -2,17 +2,13 @@ package com.example.messagingapp.presentation.screens.favorites
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.messagingapp.presentation.components.FavoritesItem
 import com.example.messagingapp.repository.MessageRepository
 import com.example.messagingapp.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 
 @HiltViewModel
 class FavoritesViewModel @Inject constructor(
@@ -20,62 +16,61 @@ class FavoritesViewModel @Inject constructor(
     private val messageRepository: MessageRepository
 ) : ViewModel() {
 
-    private val _favoriteItems = MutableStateFlow<List<FavoriteItem>>(emptyList())
-    val favoriteItems: StateFlow<List<FavoriteItem>> = _favoriteItems
+    private val _uiState = MutableStateFlow(FavoritesUiState())
+    val uiState: StateFlow<FavoritesUiState> = _uiState
 
-    private val _search = MutableStateFlow("")
-    val search: StateFlow<String> = _search
+    fun onEvent(event: FavoritesUiEvent) {
+        when (event) {
+            is FavoritesUiEvent.Init -> {
+                _uiState.update { it.copy(loggedInUsername = event.username) }
+                loadFavorites()
+            }
 
-    val filteredFavorites: StateFlow<List<FavoriteItem>> = combine(
-        _favoriteItems, _search
-    ) { items, query ->
-        if (query.isBlank()) items
-        else items.filter { it.username.contains(query, ignoreCase = true) }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            is FavoritesUiEvent.SearchChanged -> {
+                val filtered = filter(_uiState.value.favorites, event.text)
+                _uiState.update { it.copy(searchText = event.text, filteredFavorites = filtered) }
+            }
 
-    private var favoritesJob: Job? = null
+            is FavoritesUiEvent.RemoveFavorite -> {
+                viewModelScope.launch {
+                    userRepository.removeFromFavorites(event.username)
+                    loadFavorites()
+                }
+            }
 
-    fun onSearchChanged(newSearch: String) {
-        _search.value = newSearch
-    }
-
-    fun loadFavoriteUsers(loggedInUsername: String) {
-        favoritesJob?.cancel()
-        favoritesJob = viewModelScope.launch {
-            val favorites = userRepository.getFavorites()
-            favorites.forEach { favoriteUser ->
-                launch {
-                    messageRepository.getConversationFlow(loggedInUsername, favoriteUser.username)
-                        .collect { messages ->
-                            val last = messages.lastOrNull()
-                            val item = FavoriteItem(
-                                username = favoriteUser.username,
-                                lastMessageText = last?.messageText ?: "",
-                                lastMessageStatus = last?.isRead ?: 0
-                            )
-                            _favoriteItems.value =
-                                _favoriteItems.value.filterNot { it.username == item.username } + item
-                        }
+            is FavoritesUiEvent.StatusSelected -> {
+                viewModelScope.launch {
+                    userRepository.updateStatus(_uiState.value.loggedInUsername, event.status)
                 }
             }
         }
     }
 
-    fun removeFavorite(username: String) {
+    private fun loadFavorites() {
         viewModelScope.launch {
-            userRepository.removeFromFavorites(username)
-            _favoriteItems.value = _favoriteItems.value.filterNot { it.username == username }
+            val user = _uiState.value.loggedInUsername
+            val favorites = userRepository.getFavorites()
+            val list = mutableListOf<FavoritesItem>()
+
+            for (f in favorites) {
+                val conversation = messageRepository.getConversationFlow(user, f.username).firstOrNull() ?: emptyList()
+                val last = conversation.lastOrNull()
+                list.add(
+                    FavoritesItem(
+                        username = f.username,
+                        lastMessageText = last?.messageText ?: "",
+                        lastMessageStatus = last?.isRead ?: 0
+                    )
+                )
+            }
+
+            val filtered = filter(list, _uiState.value.searchText)
+            _uiState.update { it.copy(favorites = list, filteredFavorites = filtered) }
         }
     }
 
-    fun onStatusSelected(newStatus: String, username: String) {
-        viewModelScope.launch {
-            userRepository.updateStatus(username, newStatus)
-        }
+    private fun filter(list: List<FavoritesItem>, query: String): List<FavoritesItem> {
+        return if (query.isBlank()) list
+        else list.filter { it.username.contains(query, ignoreCase = true) }
     }
 }
-data class FavoriteItem(
-    val username: String,
-    val lastMessageStatus: Int,
-    val lastMessageText: String
-)

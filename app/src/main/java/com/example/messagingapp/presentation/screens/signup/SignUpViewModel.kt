@@ -1,7 +1,5 @@
 package com.example.messagingapp.presentation.screens.signup
 
-import android.content.Context
-import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,7 +7,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.messagingapp.model.data.PasswordRequirements
 import com.example.messagingapp.repository.UserRepository
+import com.example.messagingapp.utils.Hash
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -18,56 +19,53 @@ class SignUpViewModel @Inject constructor(
     private val userRepository: UserRepository
 ) : ViewModel() {
 
-    var username by mutableStateOf("")
+    var uiState by mutableStateOf(SignUpUiState())
         private set
 
-    var email by mutableStateOf("")
-        private set
+    private val _uiEvent = MutableSharedFlow<UiEvent>()
+    val uiEvent = _uiEvent.asSharedFlow()
 
-    var password by mutableStateOf("")
-        private set
-
-    var confirmPassword by mutableStateOf("")
-        private set
-
-    var errorMessage by mutableStateOf<String?>(null)
-        private set
-
-    var passwordRequirementsState by mutableStateOf(
-        PasswordRequirements()
-    )
-        private set
-
-    var isSignUpSuccessful by mutableStateOf(false)
-        private set
-
-    fun onUsernameChange(newUsername: String) {
-        username = newUsername
+    fun onEvent(event: SignUpUiEvent) {
+        when (event) {
+            is SignUpUiEvent.UsernameChanged -> uiState = uiState.copy(username = event.username)
+            is SignUpUiEvent.EmailChanged -> uiState = uiState.copy(email = event.email)
+            is SignUpUiEvent.PasswordChanged -> {
+                uiState = uiState.copy(
+                    password = event.password,
+                    passwordRequirements = checkPasswordRequirements(event.password)
+                )
+            }
+            is SignUpUiEvent.ConfirmPasswordChanged -> uiState = uiState.copy(confirmPassword = event.confirmPassword)
+            is SignUpUiEvent.SignUpClicked -> signUp()
+        }
     }
 
-    fun onEmailChanged(newEmail: String) {
-        email = newEmail
-    }
+    private fun signUp() {
+        val error = validateInputs()
+        if (error != null) {
+            sendUiEvent(UiEvent.ShowToast(error))
+            return
+        }
 
-    fun onPasswordChanged(newPassword: String) {
-        password = newPassword
-        passwordRequirementsState = checkPasswordRequirements(newPassword)
-    }
-
-    fun onConfirmPasswordChanged(newConfirmPassword: String) {
-        confirmPassword = newConfirmPassword
+        viewModelScope.launch {
+            val hashedPassword = Hash.sha256(uiState.password)
+            val result = userRepository.signUp(uiState.username, hashedPassword)
+            if (result) {
+                sendUiEvent(UiEvent.ShowToast("Sign Up Successful"))
+                uiState = uiState.copy(isSignUpSuccessful = true)
+            } else {
+                sendUiEvent(UiEvent.ShowToast("Internal error"))
+            }
+        }
     }
 
     private fun validateInputs(): String? {
         val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$".toRegex()
-
         return when {
-            username.isBlank() || email.isBlank() || password.isBlank() || confirmPassword.isBlank() ->
+            uiState.username.isBlank() || uiState.email.isBlank() || uiState.password.isBlank() || uiState.confirmPassword.isBlank() ->
                 "All fields are required."
-            !email.matches(emailRegex) ->
-                "Invalid email format."
-            password != confirmPassword ->
-                "Passwords do not match."
+            !uiState.email.matches(emailRegex) -> "Invalid email format."
+            uiState.password != uiState.confirmPassword -> "Passwords do not match."
             else -> null
         }
     }
@@ -82,21 +80,13 @@ class SignUpViewModel @Inject constructor(
         )
     }
 
-    fun onSignUpClicked(context: Context) {
-        errorMessage = validateInputs()
-        if (errorMessage != null) {
-            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-            return
-        }
-
+    private fun sendUiEvent(event: UiEvent) {
         viewModelScope.launch {
-            val result = userRepository.signUp(username,password)
-            if (result) {
-                Toast.makeText(context, "Sign Up Successful", Toast.LENGTH_LONG).show()
-                isSignUpSuccessful = true
-            } else {
-                Toast.makeText(context, "Internal error", Toast.LENGTH_LONG).show()
-            }
+            _uiEvent.emit(event)
         }
+    }
+
+    sealed class UiEvent {
+        data class ShowToast(val message: String) : UiEvent()
     }
 }

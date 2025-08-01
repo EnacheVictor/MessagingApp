@@ -1,6 +1,7 @@
 package com.example.messagingapp.presentation.screens.unread
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.messagingapp.presentation.components.MainTopBar
@@ -23,28 +25,32 @@ fun UnreadScreen(
     navController: NavController,
     viewModel: UnreadViewModel = hiltViewModel()
 ) {
-    val search by viewModel.search.collectAsState()
-    val messages by viewModel.filteredUnreadMessages.collectAsState()
+    val state = viewModel.uiState
+    val context = LocalContext.current
     var showStatusDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        viewModel.loadUnreadMessages(loggedInUsername)
+        viewModel.onEvent(UnreadUiEvent.Init(loggedInUsername))
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is UnreadViewModel.UiEvent.ShowToast ->
+                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     Scaffold(
         topBar = {
             MainTopBar(
                 title = "Recents",
-                searchValue = search,
-                onSearchChange = viewModel::onSearchChanged,
+                searchValue = state.searchText,
+                onSearchChange = { viewModel.onEvent(UnreadUiEvent.SearchChanged(it)) },
                 onSignOutClick = {
                     navController.navigate(AllScreens.LoginScreen.name) {
                         popUpTo(0)
                     }
                 },
-                onChooseStatusClick = {
-                    showStatusDialog = true
-                }
+                onChooseStatusClick = { showStatusDialog = true }
             )
         }
     ) { innerPadding ->
@@ -54,7 +60,7 @@ fun UnreadScreen(
                 .fillMaxSize()
                 .background(Color.White)
         ) {
-            items(messages) { item ->
+            items(state.filteredUnreadItems) { item ->
                 UnreadContactItem(
                     username = item.username,
                     lastMessage = item.lastMessage,
@@ -67,7 +73,7 @@ fun UnreadScreen(
         }
 
         if (showStatusDialog) {
-            val statusOptions = listOf("😎 Available", "💬 Busy", "🚀 At work", "📵 DND", "😂 Chill mood")
+            val statusOptions = listOf("Available", "Busy", "At work", "DND", "Chill mood")
             AlertDialog(
                 onDismissRequest = { showStatusDialog = false },
                 title = { Text("Choose your status") },
@@ -76,13 +82,11 @@ fun UnreadScreen(
                         statusOptions.forEach { status ->
                             TextButton(
                                 onClick = {
-                                    viewModel.onStatusSelected(status, loggedInUsername)
+                                    viewModel.onEvent(UnreadUiEvent.StatusSelected(status))
                                     showStatusDialog = false
                                 },
                                 modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(status)
-                            }
+                            ) { Text(status) }
                         }
                     }
                 },
