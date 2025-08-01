@@ -1,8 +1,5 @@
 package com.example.messagingapp.presentation.screens.signup
 
-import android.content.Context
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue

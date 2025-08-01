@@ -29,21 +29,19 @@ fun FavoritesScreen(
     navController: NavController,
     viewModel: FavoritesViewModel = hiltViewModel()
 ) {
-
-    val search by viewModel.search.collectAsState()
-    val favoriteItems by viewModel.filteredFavorites.collectAsState()
+    val state by viewModel.uiState.collectAsState()
     var showStatusDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        viewModel.loadFavoriteUsers(loggedInUsername)
+        viewModel.onEvent(FavoritesUiEvent.Init(loggedInUsername))
     }
 
     Scaffold(
         topBar = {
             MainTopBar(
                 title = "Favorites",
-                searchValue = search,
-                onSearchChange = {viewModel.onSearchChanged(it)},
+                searchValue = state.searchText,
+                onSearchChange = { viewModel.onEvent(FavoritesUiEvent.SearchChanged(it)) },
                 onSignOutClick = {
                     navController.navigate(AllScreens.LoginScreen.name) {
                         popUpTo(0)
@@ -57,15 +55,13 @@ fun FavoritesScreen(
     ) { innerPadding ->
         LazyColumn(
             contentPadding = innerPadding,
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.White)
+            modifier = Modifier.fillMaxSize().background(Color.White)
         ) {
-            items(favoriteItems, key = { it.username }) { item ->
+            items(state.filteredFavorites, key = { it.username }) { item ->
                 val dismissState = rememberDismissState(
                     confirmStateChange = {
                         if (it == DismissValue.DismissedToStart) {
-                            viewModel.removeFavorite(item.username)
+                            viewModel.onEvent(FavoritesUiEvent.RemoveFavorite(item.username))
                             false
                         } else false
                     }
@@ -83,11 +79,7 @@ fun FavoritesScreen(
                                 .background(Color.Red),
                             contentAlignment = Alignment.CenterEnd
                         ) {
-                            Text(
-                                "Remove",
-                                color = Color.White,
-                                modifier = Modifier.padding(end = 24.dp)
-                            )
+                            Text("Remove", color = Color.White, modifier = Modifier.padding(end = 24.dp))
                         }
                     },
                     dismissContent = {
@@ -97,7 +89,7 @@ fun FavoritesScreen(
                             lastMessageText = item.lastMessageText,
                             onClick = {
                                 navController.navigate(
-                                    "${AllScreens.ContactScreen.name}/${Uri.encode(loggedInUsername)}/${Uri.encode(item.username)}"
+                                    "${AllScreens.ContactScreen.name}/${Uri.encode(state.loggedInUsername)}/${Uri.encode(item.username)}"
                                 )
                             }
                         )
@@ -107,7 +99,7 @@ fun FavoritesScreen(
         }
 
         if (showStatusDialog) {
-            val statusOptions = listOf("😎 Available", "💬 Busy", "🚀 At work", "📵 DND", "😂 Chill mood")
+            val statusOptions = listOf("Available", "Busy", "At work", "DND", "Chill mood")
             AlertDialog(
                 onDismissRequest = { showStatusDialog = false },
                 title = { Text("Choose your status") },
@@ -116,7 +108,7 @@ fun FavoritesScreen(
                         statusOptions.forEach { status ->
                             TextButton(
                                 onClick = {
-                                    viewModel.onStatusSelected(status, loggedInUsername)
+                                    viewModel.onEvent(FavoritesUiEvent.StatusSelected(status))
                                     showStatusDialog = false
                                 },
                                 modifier = Modifier.fillMaxWidth()
