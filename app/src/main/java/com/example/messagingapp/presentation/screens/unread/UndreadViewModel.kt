@@ -1,16 +1,17 @@
 package com.example.messagingapp.presentation.screens.unread
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.messagingapp.repository.MessageRepository
 import com.example.messagingapp.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import com.example.messagingapp.presentation.components.UnreadItem
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -20,26 +21,36 @@ class UnreadViewModel @Inject constructor(
     private val userRepository: UserRepository
 ) : ViewModel() {
 
+    var uiState by mutableStateOf(UnreadUiState())
+        private set
 
-    private val _unreadMessages = MutableStateFlow<List<UnreadItem>>(emptyList())
-    val unreadMessages: StateFlow<List<UnreadItem>> = _unreadMessages
-
-    private val _search = MutableStateFlow("")
-    val search: StateFlow<String> = _search
-
-    val filteredUnreadMessages: StateFlow<List<UnreadItem>> =
-        combine(_unreadMessages, _search) { messages, query ->
-            if (query.isBlank()) messages
-            else messages.filter { it.username.contains(query, ignoreCase = true) }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val _uiEvent = MutableSharedFlow<UiEvent>()
+    val uiEvent = _uiEvent.asSharedFlow()
 
     private var unreadJob: Job? = null
 
-    fun onSearchChanged(newSearch: String) {
-        _search.value = newSearch
+    fun onEvent(event: UnreadUiEvent) {
+        when (event) {
+            is UnreadUiEvent.Init -> {
+                uiState = uiState.copy(loggedInUsername = event.loggedInUsername)
+                loadUnreadMessages()
+            }
+
+            is UnreadUiEvent.SearchChanged -> {
+                val filtered = filter(uiState.unreadItems, event.text)
+                uiState = uiState.copy(searchText = event.text, filteredUnreadItems = filtered)
+            }
+
+            is UnreadUiEvent.StatusSelected -> {
+                viewModelScope.launch {
+                    userRepository.updateStatus(uiState.loggedInUsername, event.status)
+                    sendUiEvent(UiEvent.ShowToast("Status updated"))
+                }
+            }
+        }
     }
 
-    fun loadUnreadMessages(loggedInUsername: String) {
+    private fun loadUnreadMessages() {
         unreadJob?.cancel()
         unreadJob = viewModelScope.launch {
             val users = userRepository.getAllUsers()
@@ -47,40 +58,47 @@ class UnreadViewModel @Inject constructor(
             users.forEach { user ->
                 launch {
                     messageRepository
-                        .getConversationFlow(loggedInUsername, user.username)
+                        .getConversationFlow(uiState.loggedInUsername, user.username)
                         .collect { conversation ->
                             val unread = conversation.filter {
-                                it.receiverUsername == loggedInUsername && it.isRead < 2
+                                it.receiverUsername == uiState.loggedInUsername && it.isRead < 2
                             }
 
-                            if (unread.isNotEmpty()) {
-                                val lastUnread = unread.last()
+                            val updatedList = if (unread.isNotEmpty()) {
+                                val last = unread.last()
                                 val item = UnreadItem(
                                     username = user.username,
-                                    lastMessage = lastUnread.messageText,
-                                    timestamp = lastUnread.timestamp
+                                    lastMessage = last.messageText,
+                                    timestamp = last.timestamp
                                 )
-                                _unreadMessages.value =
-                                    _unreadMessages.value.filterNot { it.username == item.username } + item
+                                uiState.unreadItems.filterNot { it.username == user.username } + item
                             } else {
-                                _unreadMessages.value =
-                                    _unreadMessages.value.filterNot { it.username == user.username }
+                                uiState.unreadItems.filterNot { it.username == user.username }
                             }
+
+                            val filtered = filter(updatedList, uiState.searchText)
+                            uiState = uiState.copy(
+                                unreadItems = updatedList,
+                                filteredUnreadItems = filtered
+                            )
                         }
                 }
             }
         }
     }
 
-    fun onStatusSelected(newStatus: String, username: String) {
+    private fun filter(list: List<UnreadItem>, query: String): List<UnreadItem> {
+        return if (query.isBlank()) list
+        else list.filter { it.username.contains(query, ignoreCase = true) }
+    }
+
+    private fun sendUiEvent(event: UiEvent) {
         viewModelScope.launch {
-            userRepository.updateStatus(username, newStatus)
+            _uiEvent.emit(event)
         }
     }
 
-    data class UnreadItem(
-        val username: String,
-        val lastMessage: String,
-        val timestamp: Long
-    )
+    sealed class UiEvent {
+        data class ShowToast(val message: String) : UiEvent()
+    }
 }

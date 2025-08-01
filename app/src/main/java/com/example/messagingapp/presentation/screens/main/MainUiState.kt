@@ -7,7 +7,7 @@ data class MainUiState(
     val searchText: String = "",
     val allContacts: List<UserEntity> = emptyList(),
     val filteredContacts: List<UserEntity> = emptyList(),
-    val selectedStatus: String = "😎 Available",
+    val selectedStatus: String = "Available",
     val showDeleteDialog: Boolean = false,
     val contactToDelete: String? = null
 )
