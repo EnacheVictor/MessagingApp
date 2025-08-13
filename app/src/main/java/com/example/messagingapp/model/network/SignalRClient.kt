@@ -8,22 +8,27 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 object SignalRClient {
 
     private var hubConnection: HubConnection? = null
 
+    var isConnected = false
+        private set
+
     private val _incomingMessages = MutableSharedFlow<Triple<String, String, String>>()
     val incomingMessages = _incomingMessages.asSharedFlow()
 
-    fun connect(baseUrl: String = "http://10.0.2.2:5263/SignalRHub") {
-        Log.d("SignalR", "Connecting to SignalR...")
+    fun connect(username: String, baseUrl: String = "http://10.0.2.2:5263/SignalRHub") {
         if (hubConnection != null) return
-        hubConnection = HubConnectionBuilder.create(baseUrl).build()
+        val url = "$baseUrl?user=$username"
+        Log.d("SignalR", "Connecting to SignalR as $username ...")
+
+        hubConnection = HubConnectionBuilder.create(url).build()
 
         hubConnection?.on("ReceiveMessage",
             { sender: String, receiver: String, text: String ->
-                Log.d("SignalR", "Received message from $sender to $receiver: $text")
                 CoroutineScope(Dispatchers.IO).launch {
                     _incomingMessages.emit(Triple(sender, receiver, text))
                 }
@@ -33,10 +38,12 @@ object SignalRClient {
 
         hubConnection?.start()
             ?.doOnComplete {
-                Log.d("SignalR", "SignalR connection started successfully.")
+                isConnected = true
+                Log.d("SignalR", "SignalR connection started.")
             }
             ?.doOnError {
-                Log.e("SignalR", "SignalR connection failed!", it)
+                isConnected = false
+                Log.e("SignalR", "SignalR connection failed", it)
             }?.subscribe()
     }
 
@@ -56,8 +63,18 @@ object SignalRClient {
         }
     }
 
+    suspend fun getMessagesWhenDisconnected(loggedInUser: String): List<MessageDto> =
+        withContext(Dispatchers.IO) {
+            hubConnection
+                ?.invoke(Array<MessageDto>::class.java, "GetAndDeleteMissedMessages", loggedInUser)
+                ?.blockingGet()
+                ?.toList()
+                ?: emptyList()
+        }
+
     fun disconnect() {
         hubConnection?.stop()
         hubConnection = null
+        isConnected = false
     }
 }

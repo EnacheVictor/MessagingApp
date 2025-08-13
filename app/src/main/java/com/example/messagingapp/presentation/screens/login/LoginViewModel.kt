@@ -14,6 +14,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.coroutines.delay
+
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
@@ -55,7 +57,13 @@ class LoginViewModel @Inject constructor(
             if (result) {
                 userRepository.usersFromServer()
 
-                SignalRClient.connect()
+                SignalRClient.connect(uiState.username)
+
+                while (!SignalRClient.isConnected) {
+                    delay(50)
+                }
+
+                messageRepository.getMissedMessages(uiState.username)
 
                 SignalRListener.startListening(
                     loggedInUser = uiState.username,

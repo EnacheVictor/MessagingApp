@@ -8,4 +8,6 @@ interface MessageRepository {
     suspend fun insertMessage(message: MessageEntity, skipSignalR: Boolean = false)
     suspend fun deleteConversation(user1: String, user2: String)
     suspend fun markMessagesAsRead(from: String, to: String)
+    suspend fun getMissedMessages(loggedInUser: String)
+
 }

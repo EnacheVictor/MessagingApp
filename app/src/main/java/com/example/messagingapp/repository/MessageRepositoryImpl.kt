@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.messagingapp.model.data.MessageDatabaseDao
 import com.example.messagingapp.model.data.MessageEntity
 import com.example.messagingapp.model.network.SignalRClient
+import com.example.messagingapp.model.network.toEntity
 import kotlinx.coroutines.flow.Flow
 
 class MessageRepositoryImpl(private val dao: MessageDatabaseDao) : MessageRepository {
@@ -34,6 +35,18 @@ class MessageRepositoryImpl(private val dao: MessageDatabaseDao) : MessageReposi
 
     override suspend fun markMessagesAsRead(from: String, to: String) {
         dao.markMessagesAsRead(from, to)
+    }
+
+    override suspend fun getMissedMessages(loggedInUser: String) {
+        val missed = SignalRClient.getMessagesWhenDisconnected(loggedInUser)
+        Log.d(
+            "MessageRepo",
+            "📦 Mesajele au fost primite de la server: ${missed.size} item(s) pentru $loggedInUser"
+        )
+        if (missed.isEmpty()) return
+        missed.forEach { dto ->
+            insertMessage(dto.toEntity(loggedInUser), skipSignalR = true)
+        }
     }
 }
 
