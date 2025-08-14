@@ -9,5 +9,6 @@ data class UserEntity(
     @PrimaryKey val username: String,
     val status: String = "Available",
     @ColumnInfo(name = "isFavorite")
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val publicKey: String = ""
 )

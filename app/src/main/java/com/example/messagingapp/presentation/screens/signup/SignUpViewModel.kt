@@ -49,7 +49,8 @@ class SignUpViewModel @Inject constructor(
 
         viewModelScope.launch {
             val hashedPassword = Hash.sha256(uiState.password)
-            val result = userRepository.signUp(uiState.username, hashedPassword)
+            val publicKey = "Public key"
+            val result = userRepository.signUp(uiState.username, hashedPassword, publicKey)
             if (result) {
                 sendUiEvent(UiEvent.ShowToast("Sign Up Successful"))
                 uiState = uiState.copy(isSignUpSuccessful = true)

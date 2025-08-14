@@ -2,10 +2,7 @@ package com.example.messagingapp.model.network
 
 import com.google.gson.annotations.SerializedName
 
-
-data class SignUpDto(
+data class UserDto(
     @SerializedName("Username") val username: String,
-    @SerializedName("Password") val password: String,
     @SerializedName("PublicKey") val publicKey: String
-
 )
