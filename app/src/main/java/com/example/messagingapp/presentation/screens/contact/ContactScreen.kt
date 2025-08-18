@@ -81,7 +81,7 @@ fun ContactScreen(
                 state = listState,
                 contentPadding = PaddingValues(vertical = 8.dp)
             ) {
-                items(state.filteredMessages) { message ->
+                items(state.filteredMessages.reversed()) { message ->
                     MessageBubble(
                         messageText = message.messageText,
                         isSentByMe = message.senderUsername == loggedInUsername,

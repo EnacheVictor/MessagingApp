@@ -1,5 +1,6 @@
 package com.example.messagingapp.presentation.screens.contact
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.messagingapp.model.data.MessageEntity
@@ -33,6 +34,8 @@ class ContactViewModel @Inject constructor(
 
             is ContactUiEvent.SendMessage -> {
                 viewModelScope.launch {
+                    Log.d("ContactVM", "📝 User is sending message: ${event.text} from ${event.sender} to ${event.receiver}")
+
                     val message = MessageEntity(
                         senderUsername = event.sender,
                         receiverUsername = event.receiver,
@@ -54,6 +57,7 @@ class ContactViewModel @Inject constructor(
                 viewModelScope.launch {
                     repository.markMessagesAsRead(event.contactUser, event.loggedInUser)
                     repository.getConversationFlow(event.loggedInUser, event.contactUser).collect { list ->
+                        Log.d("ContactVM", "Collected message list from Flow. Size: ${list.size}")
                         _uiState.update {
                             it.copy(
                                 messages = list,

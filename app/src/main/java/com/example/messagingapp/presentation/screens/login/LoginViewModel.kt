@@ -5,16 +5,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.messagingapp.model.network.SignalRClient
+import com.example.messagingapp.model.network.SignalRListener
+import com.example.messagingapp.repository.MessageRepository
 import com.example.messagingapp.repository.UserRepository
 import com.example.messagingapp.utils.Hash
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.coroutines.delay
+
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val messageRepository: MessageRepository
 ) : ViewModel() {
 
     var uiState by mutableStateOf(LoginUiState())
@@ -50,6 +56,20 @@ class LoginViewModel @Inject constructor(
             val result = userRepository.login(uiState.username, hashed)
             if (result) {
                 userRepository.usersFromServer()
+
+                SignalRClient.connect(uiState.username)
+
+                while (!SignalRClient.isConnected) {
+                    delay(50)
+                }
+
+                messageRepository.getMissedMessages(uiState.username)
+
+                SignalRListener.startListening(
+                    loggedInUser = uiState.username,
+                    messageRepository = messageRepository
+                )
+
                 uiState = uiState.copy(isLoginSuccessful = true)
                 sendUiEvent(UiEvent.ShowToast("Login successful"))
             } else {

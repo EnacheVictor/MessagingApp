@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.items
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.messagingapp.model.network.SignalRClient
 import com.example.messagingapp.presentation.components.ContactItem
 import com.example.messagingapp.presentation.components.MainTopBar
 import com.example.messagingapp.presentation.screens.AllScreens
@@ -55,6 +56,7 @@ fun MainScreen(
                 searchValue = state.searchText,
                 onSearchChange = { viewModel.onEvent(MainUiEvent.SearchChanged(it)) },
                 onSignOutClick = {
+                    SignalRClient.disconnect()
                     navController.navigate(AllScreens.LoginScreen.name) {
                         popUpTo(0)
                     }

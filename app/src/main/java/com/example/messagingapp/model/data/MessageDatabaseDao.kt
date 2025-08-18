@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface MessageDatabaseDao {
 
-    @Query(" SELECT * FROM messages WHERE (senderUsername = :user1 AND receiverUsername = :user2) OR (senderUsername = :user2 AND receiverUsername = :user1) ORDER BY timestamp ASC")
+    @Query("SELECT * FROM messages WHERE (senderUsername = :user1 AND receiverUsername = :user2) OR (senderUsername = :user2 AND receiverUsername = :user1) ORDER BY timestamp ASC")
     fun getConversationFlow(user1: String, user2: String): Flow<List<MessageEntity>>
 
     @Upsert

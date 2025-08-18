@@ -86,6 +86,9 @@ dependencies {
     implementation ("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
 
+    //SignalR
+    implementation("com.microsoft.signalr:signalr:6.0.1")
+
 
 
 
