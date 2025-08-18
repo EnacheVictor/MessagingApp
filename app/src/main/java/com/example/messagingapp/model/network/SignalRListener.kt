@@ -19,24 +19,20 @@ object SignalRListener {
         scope = CoroutineScope(Dispatchers.IO)
 
         scope?.launch {
-            SignalRClient.incomingMessages.collectLatest { (sender, receiver, text) ->
-                Log.d("SignalRListener", "Received via SignalR: $sender → $receiver")
-
-                val isForMe = receiver == loggedInUser
+            SignalRClient.incomingMessages.collectLatest { dto ->
+                val isForMe = dto.receiver == loggedInUser
                 if (isForMe) {
                     Log.d("SignalRListener", "Message is for logged-in user: $loggedInUser")
 
                     val message = MessageEntity(
-                        senderUsername = sender,
-                        receiverUsername = receiver,
-                        messageText = text,
+                        senderUsername = dto.sender,
+                        receiverUsername = dto.receiver,
+                        messageText = dto.text,
                         timestamp = System.currentTimeMillis(),
                         isRead = 1
                     )
 
                     messageRepository.insertMessage(message, skipSignalR = true)
-                } else {
-                    Log.d("SignalRListener", "Message NOT for $loggedInUser (was for $receiver)")
                 }
             }
         }
