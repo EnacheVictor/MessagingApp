@@ -17,23 +17,23 @@ object SignalRClient {
     var isConnected = false
         private set
 
-    private val _incomingMessages = MutableSharedFlow<Triple<String, String, String>>()
+    private val _incomingMessages = MutableSharedFlow<MessageDto>()
     val incomingMessages = _incomingMessages.asSharedFlow()
 
-    fun connect(username: String, baseUrl: String = "http://10.0.2.2:5263/SignalRHub") {
+    fun connect(username: String, baseUrl: String = "http://10.0.2.2:5263/chatHub") {
         if (hubConnection != null) return
-        val url = "$baseUrl?user=$username"
+        val url = "$baseUrl?user=${username.lowercase()}"
         Log.d("SignalR", "Connecting to SignalR as $username ...")
 
         hubConnection = HubConnectionBuilder.create(url).build()
 
         hubConnection?.on("ReceiveMessage",
-            { sender: String, receiver: String, text: String ->
+            { dto : MessageDto ->
                 CoroutineScope(Dispatchers.IO).launch {
-                    _incomingMessages.emit(Triple(sender, receiver, text))
+                    _incomingMessages.emit(dto)
                 }
             },
-            String::class.java, String::class.java, String::class.java
+            MessageDto::class.java
         )
 
         hubConnection?.start()
@@ -56,7 +56,7 @@ object SignalRClient {
         Log.d("SignalR", "Calling sendMessage to server: $sender → $receiver: $message")
 
         try {
-            hubConnection?.send("SendMessage", sender, receiver, message)
+            hubConnection?.send("SendMessage", MessageDto(sender = sender.lowercase(), receiver = receiver.lowercase(), text = message))
             Log.d("SignalR", "sendMessage() called on hubConnection")
         } catch (e: Exception) {
             Log.e("SignalR", "Error sending message via SignalR", e)
