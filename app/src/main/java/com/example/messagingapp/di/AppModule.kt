@@ -6,10 +6,13 @@ import com.example.messagingapp.domain.crypto.CryptoRepository
 import com.example.messagingapp.domain.crypto.JcaCryptoRepository
 import com.example.messagingapp.domain.crypto.usecases.ExportPublicKeyAsStringUseCase
 import com.example.messagingapp.domain.crypto.usecases.ImportPublicKeyFromStringUseCase
+import com.example.messagingapp.model.data.KeysDatabaseDao
 import com.example.messagingapp.model.data.MessageDatabaseDao
 import com.example.messagingapp.model.data.UserDatabase
 import com.example.messagingapp.model.data.UserDatabaseDao
 import com.example.messagingapp.model.network.ApiService
+import com.example.messagingapp.repository.KeysRepository
+import com.example.messagingapp.repository.KeysRepositoryImpl
 import com.example.messagingapp.repository.MessageRepository
 import com.example.messagingapp.repository.MessageRepositoryImpl
 import com.example.messagingapp.repository.UserRepositoryImpl
@@ -66,13 +69,14 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideExportPublicKeyAsStringUseCase(
-        repo: CryptoRepository
-    ): ExportPublicKeyAsStringUseCase = ExportPublicKeyAsStringUseCase(repo)
-
-    @Provides
-    @Singleton
     fun provideImportPublicKeyFromStringUseCase(
         repo: CryptoRepository
     ): ImportPublicKeyFromStringUseCase = ImportPublicKeyFromStringUseCase(repo)
+
+    @Provides
+    fun providePrivateKeyDao(db: UserDatabase): KeysDatabaseDao = db.keyDao()
+
+    @Provides
+    fun provideKeysRepository(dao: KeysDatabaseDao): KeysRepository =
+        KeysRepositoryImpl(dao)
 }
