@@ -4,8 +4,8 @@ import com.google.gson.annotations.SerializedName
 
 
 data class SignUpDto(
-    @SerializedName("Username") val username: String,
-    @SerializedName("Password") val password: String,
-    @SerializedName("PublicKey") val publicKey: String
+    @SerializedName("username") val username: String,
+    @SerializedName("password") val password: String,
+    @SerializedName("publicKey") val publicKey: String
 
 )

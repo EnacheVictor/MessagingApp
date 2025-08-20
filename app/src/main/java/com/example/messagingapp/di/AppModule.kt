@@ -2,6 +2,10 @@ package com.example.messagingapp.di
 
 import android.app.Application
 import androidx.room.Room
+import com.example.messagingapp.domain.crypto.CryptoRepository
+import com.example.messagingapp.domain.crypto.JcaCryptoRepository
+import com.example.messagingapp.domain.crypto.usecases.ExportPublicKeyAsStringUseCase
+import com.example.messagingapp.domain.crypto.usecases.ImportPublicKeyFromStringUseCase
 import com.example.messagingapp.model.data.MessageDatabaseDao
 import com.example.messagingapp.model.data.UserDatabase
 import com.example.messagingapp.model.data.UserDatabaseDao
@@ -55,4 +59,20 @@ object AppModule {
     @Singleton
     fun provideApiService(retrofit: Retrofit): ApiService =
         retrofit.create(ApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideCryptoRepository(): CryptoRepository = JcaCryptoRepository()
+
+    @Provides
+    @Singleton
+    fun provideExportPublicKeyAsStringUseCase(
+        repo: CryptoRepository
+    ): ExportPublicKeyAsStringUseCase = ExportPublicKeyAsStringUseCase(repo)
+
+    @Provides
+    @Singleton
+    fun provideImportPublicKeyFromStringUseCase(
+        repo: CryptoRepository
+    ): ImportPublicKeyFromStringUseCase = ImportPublicKeyFromStringUseCase(repo)
 }

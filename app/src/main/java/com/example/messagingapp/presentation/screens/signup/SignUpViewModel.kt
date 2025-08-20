@@ -1,10 +1,13 @@
 package com.example.messagingapp.presentation.screens.signup
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.messagingapp.domain.crypto.KeyGen
+import com.example.messagingapp.domain.crypto.usecases.ExportPublicKeyAsStringUseCase
 import com.example.messagingapp.model.data.PasswordRequirements
 import com.example.messagingapp.repository.UserRepository
 import com.example.messagingapp.utils.Hash
@@ -16,7 +19,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SignUpViewModel @Inject constructor(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val exportPublicKeyAsString: ExportPublicKeyAsStringUseCase
 ) : ViewModel() {
 
     var uiState by mutableStateOf(SignUpUiState())
@@ -48,9 +52,14 @@ class SignUpViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            val keyPair = KeyGen.generateKeyPair()
+            val publicKeyString = exportPublicKeyAsString(keyPair.public)
             val hashedPassword = Hash.sha256(uiState.password)
-            val publicKey = "Public key"
-            val result = userRepository.signUp(uiState.username, hashedPassword, publicKey)
+
+            Log.d("Crypto", "PublicKey(Base64) to be sent: $publicKeyString")
+            Log.d("SignUp", "Username=${uiState.username}, PasswordHash=$hashedPassword")
+
+            val result = userRepository.signUp(uiState.username, hashedPassword, publicKeyString)
             if (result) {
                 sendUiEvent(UiEvent.ShowToast("Sign Up Successful"))
                 uiState = uiState.copy(isSignUpSuccessful = true)

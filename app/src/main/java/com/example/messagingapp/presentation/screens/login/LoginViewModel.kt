@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.messagingapp.domain.crypto.usecases.ImportPublicKeyFromStringUseCase
 import com.example.messagingapp.model.network.SignalRClient
 import com.example.messagingapp.model.network.SignalRListener
 import com.example.messagingapp.repository.MessageRepository
@@ -20,7 +21,8 @@ import kotlinx.coroutines.delay
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val messageRepository: MessageRepository
+    private val messageRepository: MessageRepository,
+    private val importPubKey: ImportPublicKeyFromStringUseCase
 ) : ViewModel() {
 
     var uiState by mutableStateOf(LoginUiState())

@@ -1,5 +1,6 @@
 package com.example.messagingapp.repository
 
+import android.util.Log
 import com.example.messagingapp.model.data.UserDatabaseDao
 import com.example.messagingapp.model.data.UserEntity
 import com.example.messagingapp.model.network.ApiService
@@ -37,7 +38,9 @@ class UserRepositoryImpl(private val dao: UserDatabaseDao,
 
     override suspend fun signUp(username: String, password: String, publicKey: String): Boolean {
         val dto = SignUpDto(username, password, publicKey)
+        Log.d("UserRepository", "SignUpDto being sent: $dto")
         val response = apiService.signUp(dto)
+        Log.d("UserRepository", "SignUp response: success=${response.isSuccessful}, code=${response.code()}")
         return response.isSuccessful
     }
 
@@ -51,11 +54,11 @@ class UserRepositoryImpl(private val dao: UserDatabaseDao,
         val response = apiService.getAllUsers()
         if (response.isSuccessful) {
             val users = response.body()?.map { it.toEntity() } ?: emptyList()
+            Log.d("Crypto", "Fetched users from server: $users")
             dao.deleteAllUsers()
             if (users.isNotEmpty()) {
                 dao.insertUsers(users)
             }
         }
     }
-
 }

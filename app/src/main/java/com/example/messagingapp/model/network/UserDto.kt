@@ -3,6 +3,6 @@ package com.example.messagingapp.model.network
 import com.google.gson.annotations.SerializedName
 
 data class UserDto(
-    @SerializedName("Username") val username: String,
-    @SerializedName("PublicKey") val publicKey: String
+    @SerializedName("username") val username: String,
+    @SerializedName("publicKey") val publicKey: String
 )
