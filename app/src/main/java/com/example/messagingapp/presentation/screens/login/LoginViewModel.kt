@@ -20,7 +20,7 @@ import kotlinx.coroutines.delay
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val messageRepository: MessageRepository
+    private val messageRepository: MessageRepository,
 ) : ViewModel() {
 
     var uiState by mutableStateOf(LoginUiState())
@@ -55,6 +55,7 @@ class LoginViewModel @Inject constructor(
             val hashed = Hash.sha256(uiState.password)
             val result = userRepository.login(uiState.username, hashed)
             if (result) {
+
                 userRepository.usersFromServer()
 
                 SignalRClient.connect(uiState.username)

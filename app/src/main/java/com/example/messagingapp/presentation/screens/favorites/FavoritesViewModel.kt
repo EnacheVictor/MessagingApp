@@ -33,7 +33,7 @@ class FavoritesViewModel @Inject constructor(
 
             is FavoritesUiEvent.RemoveFavorite -> {
                 viewModelScope.launch {
-                    userRepository.removeFromFavorites(event.username)
+                    userRepository.setFavorite(event.username, false)
                     loadFavorites()
                 }
             }

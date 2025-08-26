@@ -21,6 +21,7 @@ import com.example.messagingapp.presentation.components.MainTopBar
 import com.example.messagingapp.presentation.screens.AllScreens
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.example.messagingapp.model.network.SignalRClient
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -43,6 +44,7 @@ fun FavoritesScreen(
                 searchValue = state.searchText,
                 onSearchChange = { viewModel.onEvent(FavoritesUiEvent.SearchChanged(it)) },
                 onSignOutClick = {
+                    SignalRClient.disconnect()
                     navController.navigate(AllScreens.LoginScreen.name) {
                         popUpTo(0)
                     }

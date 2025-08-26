@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ContactViewModel @Inject constructor(
-    private val repository: MessageRepository
+    private val repository: MessageRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ContactUiState())
@@ -34,7 +34,7 @@ class ContactViewModel @Inject constructor(
 
             is ContactUiEvent.SendMessage -> {
                 viewModelScope.launch {
-                    Log.d("ContactVM", "📝 User is sending message: ${event.text} from ${event.sender} to ${event.receiver}")
+                    Log.d("Crypto", "📝 User is sending message: ${event.text} from ${event.sender} to ${event.receiver}")
 
                     val message = MessageEntity(
                         senderUsername = event.sender,
@@ -57,7 +57,7 @@ class ContactViewModel @Inject constructor(
                 viewModelScope.launch {
                     repository.markMessagesAsRead(event.contactUser, event.loggedInUser)
                     repository.getConversationFlow(event.loggedInUser, event.contactUser).collect { list ->
-                        Log.d("ContactVM", "Collected message list from Flow. Size: ${list.size}")
+                        Log.d("Crypto", "Collected message list from Flow. Size: ${list.size}")
                         _uiState.update {
                             it.copy(
                                 messages = list,
@@ -69,9 +69,10 @@ class ContactViewModel @Inject constructor(
             }
         }
     }
-
     private fun applyFilter(messages: List<MessageEntity>, search: String): List<MessageEntity> {
         return if (search.isBlank()) messages
         else messages.filter { it.messageText.contains(search, ignoreCase = true) }
     }
 }
+
+

@@ -6,16 +6,13 @@ import com.example.messagingapp.model.data.UserEntity
 import com.example.messagingapp.model.network.ApiService
 import com.example.messagingapp.model.network.LoginDto
 import com.example.messagingapp.model.network.SignUpDto
+import com.example.messagingapp.model.network.toEntity
 
 class UserRepositoryImpl(private val dao: UserDatabaseDao,
                          private val apiService: ApiService) : UserRepository {
 
     override suspend fun getAllUsers(): List<UserEntity> {
         return dao.getAllUsers()
-    }
-
-    override suspend fun insertUser(username: String) {
-        dao.insertUser(UserEntity(username))
     }
 
     override suspend fun deleteUser(username: String) {
@@ -34,20 +31,16 @@ class UserRepositoryImpl(private val dao: UserDatabaseDao,
         return dao.getFavoriteUsers()
     }
 
-    override suspend fun addToFavorites(username: String) {
-        dao.setFavorite(username, true)
-    }
 
-    override suspend fun removeFromFavorites(username: String) {
-        dao.setFavorite(username, false)
-    }
     override suspend fun setFavorite(username: String, isFavorite: Boolean) {
         dao.setFavorite(username, isFavorite)
     }
 
-    override suspend fun signUp(username: String, password: String): Boolean {
-        val dto = SignUpDto(username, password)
+    override suspend fun signUp(username: String, password: String, publicKey: String): Boolean {
+        val dto = SignUpDto(username, password, publicKey)
+        Log.d("UserRepository", "SignUpDto being sent: $dto")
         val response = apiService.signUp(dto)
+        Log.d("UserRepository", "SignUp response: success=${response.isSuccessful}, code=${response.code()}")
         return response.isSuccessful
     }
 
@@ -58,14 +51,16 @@ class UserRepositoryImpl(private val dao: UserDatabaseDao,
     }
 
     override suspend fun usersFromServer() {
-        val response = apiService.getAllUsernames()
+        val response = apiService.getAllUsers()
         if (response.isSuccessful) {
-            val usernames = response.body() ?: emptyList()
+            val users = response.body()?.map { it.toEntity() } ?: emptyList()
+            Log.d("Crypto", "Fetched users from server: $users")
             dao.deleteAllUsers()
-            usernames.forEach { username ->
-                dao.insertUser(UserEntity(username = username))
+            if (users.isNotEmpty()) {
+                dao.insertUsers(users)
             }
         }
     }
-
+    override suspend fun getPublicKeyForUser(username: String): String? =
+        dao.getPublicKey(username)
 }

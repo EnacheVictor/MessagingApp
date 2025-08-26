@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.messagingapp.model.network.SignalRClient
 import com.example.messagingapp.presentation.components.MainTopBar
 import com.example.messagingapp.presentation.components.UnreadContactItem
 import com.example.messagingapp.presentation.screens.AllScreens
@@ -46,6 +47,7 @@ fun UnreadScreen(
                 searchValue = state.searchText,
                 onSearchChange = { viewModel.onEvent(UnreadUiEvent.SearchChanged(it)) },
                 onSignOutClick = {
+                    SignalRClient.disconnect()
                     navController.navigate(AllScreens.LoginScreen.name) {
                         popUpTo(0)
                     }

@@ -11,7 +11,7 @@ interface UserDatabaseDao {
     suspend fun getAllUsers(): List<UserEntity>
 
     @Upsert
-    suspend fun insertUser(user: UserEntity)
+    suspend fun insertUsers(users: List<UserEntity>)
 
     @Query("DELETE FROM users WHERE username = :username")
     suspend fun deleteUser(username: String)
@@ -30,4 +30,7 @@ interface UserDatabaseDao {
 
     @Query("DELETE FROM users")
     suspend fun deleteAllUsers()
+
+    @Query("SELECT publicKey FROM users WHERE username = :username LIMIT 1")
+    suspend fun getPublicKey(username: String): String?
 }

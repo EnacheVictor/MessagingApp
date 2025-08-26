@@ -14,5 +14,5 @@ interface ApiService {
     suspend fun login(@Body loginDto: LoginDto): Response<Unit>
 
     @GET("users/all")
-    suspend fun getAllUsernames(): Response<List<String>>
+    suspend fun getAllUsers(): Response<List<UserDto>>
 }
