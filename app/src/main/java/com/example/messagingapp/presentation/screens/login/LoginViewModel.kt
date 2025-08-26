@@ -1,12 +1,10 @@
 package com.example.messagingapp.presentation.screens.login
 
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.messagingapp.domain.crypto.usecases.ImportPublicKeyFromStringUseCase
 import com.example.messagingapp.model.network.SignalRClient
 import com.example.messagingapp.model.network.SignalRListener
 import com.example.messagingapp.repository.MessageRepository
@@ -23,9 +21,6 @@ import kotlinx.coroutines.delay
 class LoginViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val messageRepository: MessageRepository,
-    private val importPubKey: ImportPublicKeyFromStringUseCase,
-    private val crypto: com.example.messagingapp.domain.crypto.CryptoRepository,
-    private val keysRepo: com.example.messagingapp.repository.KeysRepository
 ) : ViewModel() {
 
     var uiState by mutableStateOf(LoginUiState())
@@ -60,12 +55,6 @@ class LoginViewModel @Inject constructor(
             val hashed = Hash.sha256(uiState.password)
             val result = userRepository.login(uiState.username, hashed)
             if (result) {
-
-                val privB64 = keysRepo.getPrivateKey()
-                Log.d("Crypto", "PrivateKey exists=${privB64 != null}")
-
-                val myPrivate = privB64?.let { crypto.importPrivateKeyFromString(it) }
-                Log.d("Crypto", " My private key is $myPrivate")
 
                 userRepository.usersFromServer()
 

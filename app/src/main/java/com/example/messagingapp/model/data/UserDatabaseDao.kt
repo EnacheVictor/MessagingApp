@@ -30,4 +30,7 @@ interface UserDatabaseDao {
 
     @Query("DELETE FROM users")
     suspend fun deleteAllUsers()
+
+    @Query("SELECT publicKey FROM users WHERE username = :username LIMIT 1")
+    suspend fun getPublicKey(username: String): String?
 }

@@ -61,4 +61,6 @@ class UserRepositoryImpl(private val dao: UserDatabaseDao,
             }
         }
     }
+    override suspend fun getPublicKeyForUser(username: String): String? =
+        dao.getPublicKey(username)
 }

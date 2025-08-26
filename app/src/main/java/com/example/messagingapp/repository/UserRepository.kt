@@ -12,4 +12,6 @@ interface UserRepository {
     suspend fun signUp(username: String, password: String, publicKey: String): Boolean
     suspend fun login(username: String,password: String): Boolean
     suspend fun usersFromServer()
+    suspend fun getPublicKeyForUser(username: String): String?
+
 }

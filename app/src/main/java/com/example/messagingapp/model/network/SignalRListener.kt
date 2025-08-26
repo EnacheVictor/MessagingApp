@@ -22,7 +22,7 @@ object SignalRListener {
             SignalRClient.incomingMessages.collectLatest { dto ->
                 val isForMe = dto.receiver == loggedInUser
                 if (isForMe) {
-                    Log.d("SignalRListener", "Message is for logged-in user: $loggedInUser")
+                    Log.d("Crypto", "Message is for logged-in user: $loggedInUser")
 
                     val message = MessageEntity(
                         senderUsername = dto.sender,

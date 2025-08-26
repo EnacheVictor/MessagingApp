@@ -3,9 +3,8 @@ package com.example.messagingapp.di
 import android.app.Application
 import androidx.room.Room
 import com.example.messagingapp.domain.crypto.CryptoRepository
+import com.example.messagingapp.domain.crypto.EncryptorAndDecryptor
 import com.example.messagingapp.domain.crypto.JcaCryptoRepository
-import com.example.messagingapp.domain.crypto.usecases.ExportPublicKeyAsStringUseCase
-import com.example.messagingapp.domain.crypto.usecases.ImportPublicKeyFromStringUseCase
 import com.example.messagingapp.model.data.KeysDatabaseDao
 import com.example.messagingapp.model.data.MessageDatabaseDao
 import com.example.messagingapp.model.data.UserDatabase
@@ -47,8 +46,21 @@ object AppModule {
     ): UserRepository = UserRepositoryImpl(userDao, apiService)
 
     @Provides
-    fun provideMessageRepository(messageDao: MessageDatabaseDao): MessageRepository =
-        MessageRepositoryImpl(messageDao)
+    @Singleton
+    fun provideMessageEncryptor(
+        userRepo: UserRepository,
+        keysRepo: KeysRepository,
+        crypto: CryptoRepository
+    ): EncryptorAndDecryptor = EncryptorAndDecryptor(userRepo, keysRepo, crypto)
+
+    @Provides
+    fun provideMessageRepository(
+        messageDao: MessageDatabaseDao,
+        userRepo: UserRepository,
+        keysRepo: KeysRepository,
+        crypto: CryptoRepository
+    ): MessageRepository =
+        MessageRepositoryImpl(messageDao, userRepo, keysRepo, crypto)
 
     @Provides
     @Singleton
@@ -66,12 +78,6 @@ object AppModule {
     @Provides
     @Singleton
     fun provideCryptoRepository(): CryptoRepository = JcaCryptoRepository()
-
-    @Provides
-    @Singleton
-    fun provideImportPublicKeyFromStringUseCase(
-        repo: CryptoRepository
-    ): ImportPublicKeyFromStringUseCase = ImportPublicKeyFromStringUseCase(repo)
 
     @Provides
     fun providePrivateKeyDao(db: UserDatabase): KeysDatabaseDao = db.keyDao()
