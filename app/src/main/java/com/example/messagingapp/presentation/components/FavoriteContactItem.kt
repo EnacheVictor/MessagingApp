@@ -27,14 +27,14 @@ fun FavoriteContactItem(
     onClick: () -> Unit
 ) {
     val statusSymbol = when (lastMessageStatus) {
-        0 -> "✓"
-        1 -> "✓✓"
+        1 -> "✓"
         2 -> "✓✓"
+        3 -> "✓✓"
         else -> ""
     }
 
     val statusColor = when (lastMessageStatus) {
-        2 -> DarkBlue
+        3 -> DarkBlue
         else -> Color.Gray
     }
 

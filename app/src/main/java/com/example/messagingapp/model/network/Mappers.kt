@@ -7,7 +7,7 @@ fun MessageDto.toEntity(myUser: String) = MessageEntity(
     senderUsername = sender,
     receiverUsername = receiver,
     messageText = text,
-    isRead = if (receiver == myUser) 1 else 0,
+    isRead = 1,
     timestamp = System.currentTimeMillis()
 )
 

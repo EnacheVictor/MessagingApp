@@ -36,14 +36,14 @@ fun MessageBubble(
     }
 
     val readIndicator = when (isReadStatus) {
-        0 -> "✓"
-        1 -> "✓✓"
+        1 -> "✓"
         2 -> "✓✓"
+        3 -> "✓✓"
         else -> ""
     }
 
     val readColor = when (isReadStatus) {
-        2 -> Color.White.copy(alpha = 0.8f)
+        3 -> Color.White.copy(alpha = 0.8f)
         else -> Color.White.copy(alpha = 0.6f)
     }
 

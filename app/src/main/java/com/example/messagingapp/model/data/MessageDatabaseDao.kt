@@ -17,6 +17,6 @@ interface MessageDatabaseDao {
     @Query("DELETE FROM messages WHERE (senderUsername = :user1 AND receiverUsername = :user2) OR (senderUsername = :user2 AND receiverUsername = :user1)")
     suspend fun deleteConversation(user1: String, user2: String)
 
-    @Query("UPDATE messages SET isRead = 2 WHERE senderUsername = :from AND receiverUsername = :to")
+    @Query("UPDATE messages SET isRead = 3 WHERE senderUsername = :from AND receiverUsername = :to")
     suspend fun markMessagesAsRead(from: String, to: String)
 }

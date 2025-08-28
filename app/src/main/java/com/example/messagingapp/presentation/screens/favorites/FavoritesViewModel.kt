@@ -59,7 +59,7 @@ class FavoritesViewModel @Inject constructor(
                     FavoritesItem(
                         username = f.username,
                         lastMessageText = last?.messageText ?: "",
-                        lastMessageStatus = last?.isRead ?: 0
+                        lastMessageStatus = last?.isRead ?: 1
                     )
                 )
             }

@@ -23,6 +23,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
 import javax.inject.Singleton
+import net.sqlcipher.database.SupportFactory
+import net.sqlcipher.database.SQLiteDatabase
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -30,9 +32,13 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideDatabase(app: Application): UserDatabase =
-        Room.databaseBuilder(app, UserDatabase::class.java, "messaging_db").fallbackToDestructiveMigration().build()
-
+    fun provideDatabase(app: Application): UserDatabase {
+        val passphrase = SQLiteDatabase.getBytes("MyPassword".toCharArray())
+        val factory = SupportFactory(passphrase)
+        return Room.databaseBuilder(app, UserDatabase::class.java, "messaging_db2")
+            .openHelperFactory(factory)
+            .fallbackToDestructiveMigration().build()
+    }
     @Provides
     fun provideUserDao(db: UserDatabase): UserDatabaseDao = db.userDao()
 

@@ -6,4 +6,5 @@ data class MessageDto(
     @SerializedName("sender") val sender: String,
     @SerializedName("receiver") val receiver: String,
     @SerializedName("text") val text: String,
+    @SerializedName("status") val status: Int? = null
 )

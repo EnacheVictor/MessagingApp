@@ -61,7 +61,7 @@ class UnreadViewModel @Inject constructor(
                         .getConversationFlow(uiState.loggedInUsername, user.username)
                         .collect { conversation ->
                             val unread = conversation.filter {
-                                it.receiverUsername == uiState.loggedInUsername && it.isRead < 2
+                                it.receiverUsername == uiState.loggedInUsername && it.isRead < 3
                             }
 
                             val updatedList = if (unread.isNotEmpty()) {

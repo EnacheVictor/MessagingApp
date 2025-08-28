@@ -76,7 +76,7 @@ object SignalRClient {
             return
         }
         try {
-            hc.send("SendMessage", MessageDto(sender = sender, receiver = receiver, text = message))
+            hc.send("SendMessage", MessageDto(sender = sender, receiver = receiver, text = message, status = 1))
         } catch (e: Exception) {
             Log.e("Crypto", "Error sending message via SignalR", e)
         }

@@ -32,9 +32,9 @@ class MessageRepositoryImpl(private val dao: MessageDatabaseDao,
 
                 val toSave = if (plain.isNullOrBlank()) {
                     Log.w("Crypto", "Decrypt failed/empty. Saving raw text as fallback.")
-                    message.copy(isRead = 1)
+                    message
                 } else {
-                    message.copy(messageText = plain, isRead = 1)
+                    message.copy(messageText = plain)
                 }
 
                 dao.insertMessage(toSave)

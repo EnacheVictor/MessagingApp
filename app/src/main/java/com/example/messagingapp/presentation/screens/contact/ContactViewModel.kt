@@ -41,7 +41,7 @@ class ContactViewModel @Inject constructor(
                         receiverUsername = event.receiver,
                         messageText = event.text,
                         timestamp = System.currentTimeMillis(),
-                        isRead = 0
+                        isRead = 1
                     )
                     repository.insertMessage(message)
                 }

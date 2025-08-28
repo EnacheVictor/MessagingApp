@@ -65,6 +65,8 @@ dependencies {
     kapt("androidx.room:room-compiler:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
 
+    implementation ("net.zetetic:android-database-sqlcipher:4.5.4")
+
     // Hilt
     val hiltVersion = "2.48"
     implementation("com.google.dagger:hilt-android:$hiltVersion")
